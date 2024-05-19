@@ -4,7 +4,7 @@
     <div class="row">
       <TimeScheduler
         v-model="events"
-        :from="new Date('1990-10-19T08:00:00')"
+        :from="new Date('1990-10-19T06:00:00')"
         :to="new Date('1990-10-19T13:00:00')"
         :step="15"
       />

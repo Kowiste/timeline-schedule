@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div  class="calendar-container">
+    <div class="calendar-container">
       <div class="header">
         <div v-for="(hour, index) in hours" :key="index" class="header-hour">
           {{ hour }}
@@ -12,8 +12,7 @@
           :key="index"
           class="hour-line"
           :style="{ left: `${index * (100 / hours.length)}%` }"
-        >
-        </div>
+        ></div>
         <div
           v-for="box in model"
           :key="box.id"
@@ -29,11 +28,11 @@
         >
           <div
             class="circle-left"
-            @mousedown="handleResizeStart($event, box, 'left')"
+            @click="handleResizeStart(box, 'left')"
           ></div>
           <div
             class="circle-rigth"
-            @mousedown="handleResizeStart($event, box, 'right')"
+            @click="handleResizeStart(box, 'right')"
           ></div>
         </div>
       </div>
@@ -45,6 +44,7 @@
 //imports
 import { ref, onMounted, onUnmounted } from 'vue'
 import { type IPosition } from '@/components/model'
+
 //props
 const model = defineModel({
   default: [],
@@ -65,8 +65,8 @@ const props = defineProps({
     default: new Date('1990-10-20T00:00:00'),
   },
 })
-//data
 
+//data
 const calendar = ref<HTMLElement | null>(null)
 const currentDraggingBox = ref({} as IPosition)
 const resizingBox = ref<{ box: IPosition; direction: 'left' | 'right' } | null>(
@@ -81,22 +81,16 @@ const hours = Array.from({ length: totalHours }, (_, i) => {
   return `${String(date.getHours()).padStart(2, '0')}:00`
 })
 
+//methods
 function handleDragStart(box: IPosition) {
   currentDraggingBox.value = box
 }
 
-
-
-//methods
 function handleDragEnd() {
   currentDraggingBox.value = {} as IPosition
 }
 
-function handleResizeStart(
-  event: MouseEvent,
-  box: IPosition,
-  direction: 'left' | 'right'
-) {
+function handleResizeStart(box: IPosition, direction: 'left' | 'right') {
   resizingBox.value = { box, direction }
   document.addEventListener('mousemove', handleResizing)
   document.addEventListener('mouseup', handleResizeEnd)
@@ -159,6 +153,7 @@ function handleResizeEnd() {
   document.removeEventListener('mousemove', handleResizing)
   document.removeEventListener('mouseup', handleResizeEnd)
 }
+
 //hooks
 onMounted(() => {
   document.addEventListener('mouseup', handleResizeEnd)
@@ -203,7 +198,7 @@ onUnmounted(() => {
   box-sizing: border-box;
   border-bottom-left-radius: 0.2rem;
   border-bottom-right-radius: 0.2rem;
-  padding: 0.1rem
+  padding: 0.1rem;
 }
 
 .hour-line {
