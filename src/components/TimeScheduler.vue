@@ -23,7 +23,7 @@
             width: `${box.duration}px`,
           }"
           draggable="true"
-          @dragstart="handleDragStart(box)"
+          @dragstart="handleDragStart($event, box)"
           @dragend="handleDragEnd"
         >
           <div
@@ -40,16 +40,17 @@
   </div>
 </template>
 
-<script setup lang="ts">
-//imports
-import { ref, onMounted, onUnmounted } from 'vue'
-import { type IPosition } from '@/components/model'
 
-//props
+<script setup lang="ts">
+// imports
+import { ref, onMounted, onUnmounted } from 'vue'
+import { type IPosition, type Position } from '@/components/model'
+
+// props
 const model = defineModel({
   default: [],
   required: true,
-  type: Array<IPosition>,
+  type: Array<Position>,
 })
 const props = defineProps({
   step: {
@@ -66,12 +67,11 @@ const props = defineProps({
   },
 })
 
-//data
+// data
 const calendar = ref<HTMLElement | null>(null)
 const currentDraggingBox = ref({} as IPosition)
-const resizingBox = ref<{ box: IPosition; direction: 'left' | 'right' } | null>(
-  null
-)
+const resizingBox = ref<{ box: IPosition; direction: 'left' | 'right' } | null>(null)
+const dragOffset = ref(0)
 
 const totalHours = Math.abs(props.to.getTime() - props.from.getTime()) / 36e5
 
@@ -81,8 +81,11 @@ const hours = Array.from({ length: totalHours }, (_, i) => {
   return `${String(date.getHours()).padStart(2, '0')}:00`
 })
 
-//methods
-function handleDragStart(box: IPosition) {
+// methods
+function handleDragStart(event: DragEvent, box: IPosition) {
+  const target = event.target as HTMLElement
+  const boxRect = target.getBoundingClientRect()
+  dragOffset.value = event.clientX - boxRect.left
   currentDraggingBox.value = box
 }
 
@@ -96,11 +99,11 @@ function handleResizeStart(box: IPosition, direction: 'left' | 'right') {
   document.addEventListener('mouseup', handleResizeEnd)
 }
 
-function handleDragOver(event: any) {
+function handleDragOver(event: DragEvent) {
   event.preventDefault()
   if (currentDraggingBox.value && calendar.value) {
     const parent = calendar.value
-    const offsetX = event.clientX - parent.getBoundingClientRect().left
+    const offsetX = event.clientX - parent.getBoundingClientRect().left - dragOffset.value
     const stepWidth = parent.offsetWidth / ((24 * 60) / props.step)
     const roundedOffsetX = Math.round(offsetX / stepWidth) * stepWidth
 
@@ -114,7 +117,7 @@ function handleDragOver(event: any) {
     const nearestHourIndex = Math.floor(blockPosition / stepWidth)
     const nearestHourPosition = nearestHourIndex * stepWidth
 
-    // Update box position and duration
+    // Update box position
     currentDraggingBox.value.position = nearestHourPosition
   }
 }
@@ -154,7 +157,7 @@ function handleResizeEnd() {
   document.removeEventListener('mouseup', handleResizeEnd)
 }
 
-//hooks
+// hooks
 onMounted(() => {
   document.addEventListener('mouseup', handleResizeEnd)
 })
@@ -163,6 +166,7 @@ onUnmounted(() => {
   document.removeEventListener('mouseup', handleResizeEnd)
 })
 </script>
+
 
 <style scoped>
 .calendar-container {
