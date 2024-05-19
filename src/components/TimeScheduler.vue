@@ -34,6 +34,7 @@
             class="circle-rigth"
             @click="handleResizeStart(box, 'right')"
           ></div>
+          <slot :data="box"></slot>
         </div>
       </div>
     </div>
