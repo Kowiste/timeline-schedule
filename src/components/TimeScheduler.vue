@@ -6,7 +6,7 @@
           {{ hour }}
         </div>
       </div>
-      <div ref="calendar" class="day-calendar" @dragover="handleDragOver">
+      <div ref="calendar" class="day-calendar" @dragover="dragOver">
         <div
           v-for="(hour, index) in hours"
           :key="index"
@@ -23,16 +23,16 @@
             width: `${box.duration}px`,
           }"
           draggable="true"
-          @dragstart="handleDragStart($event, box)"
-          @dragend="handleDragEnd"
+          @dragstart="dragStart($event, box)"
+          @dragend="dragEnd"
         >
           <div
             class="circle-left"
-            @click="handleResizeStart(box, 'left')"
+            @click="resizeStart(box, 'left')"
           ></div>
           <div
             class="circle-rigth"
-            @click="handleResizeStart(box, 'right')"
+            @click="resizeStart(box, 'right')"
           ></div>
           <slot :data="box"></slot>
         </div>
@@ -83,24 +83,24 @@ const hours = Array.from({ length: totalHours }, (_, i) => {
 })
 
 // methods
-function handleDragStart(event: DragEvent, box: IPosition) {
+function dragStart(event: DragEvent, box: IPosition) {
   const target = event.target as HTMLElement
   const boxRect = target.getBoundingClientRect()
   dragOffset.value = event.clientX - boxRect.left
   currentDraggingBox.value = box
 }
 
-function handleDragEnd() {
+function dragEnd() {
   currentDraggingBox.value = {} as IPosition
 }
 
-function handleResizeStart(box: IPosition, direction: 'left' | 'right') {
+function resizeStart(box: IPosition, direction: 'left' | 'right') {
   resizingBox.value = { box, direction }
-  document.addEventListener('mousemove', handleResizing)
-  document.addEventListener('mouseup', handleResizeEnd)
+  document.addEventListener('mousemove', resizing)
+  document.addEventListener('mouseup', resizeEnd)
 }
 
-function handleDragOver(event: DragEvent) {
+function dragOver(event: DragEvent) {
   event.preventDefault()
   if (currentDraggingBox.value && calendar.value) {
     const parent = calendar.value
@@ -123,7 +123,7 @@ function handleDragOver(event: DragEvent) {
   }
 }
 
-function handleResizing(event: MouseEvent) {
+function resizing(event: MouseEvent) {
   if (resizingBox.value && calendar.value) {
     const parent = calendar.value
     const { box, direction } = resizingBox.value
@@ -152,19 +152,19 @@ function handleResizing(event: MouseEvent) {
   }
 }
 
-function handleResizeEnd() {
+function resizeEnd() {
   resizingBox.value = null
-  document.removeEventListener('mousemove', handleResizing)
-  document.removeEventListener('mouseup', handleResizeEnd)
+  document.removeEventListener('mousemove', resizing)
+  document.removeEventListener('mouseup', resizeEnd)
 }
 
 // hooks
 onMounted(() => {
-  document.addEventListener('mouseup', handleResizeEnd)
+  document.addEventListener('mouseup', resizeEnd)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('mouseup', handleResizeEnd)
+  document.removeEventListener('mouseup', resizeEnd)
 })
 </script>
 
