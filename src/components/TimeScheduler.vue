@@ -19,8 +19,8 @@
           class="event"
           :style="{
             backgroundColor: box.color,
-            left: `${box.position}px`,
-            width: `${box.duration}px`,
+            left: `${calculatePosition(box.from)}px`,
+            width: `${calculateDuration(box.from, box.to)}px`,
           }"
           draggable="true"
           @dragstart="dragStart($event, box)"
@@ -28,31 +28,29 @@
         >
           <div
             class="circle-left"
-            @click="resizeStart(box, 'left')"
+            @click="resizeStart(box, EDirection.Left)"
           ></div>
           <div
-            class="circle-rigth"
-            @click="resizeStart(box, 'right')"
+            class="circle-right"
+            @click="resizeStart(box, EDirection.Right)"
           ></div>
-          <slot :data="box"></slot>
+          <slot :data="box">{{ box.id }}</slot>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-
 <script setup lang="ts">
-// imports
-import { ref, onMounted, onUnmounted } from 'vue'
-import { type IPosition, type Position } from '@/components/model'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { EDirection, type IPosition, type Position } from '@/components/model'
 
-// props
 const model = defineModel({
   default: [],
   required: true,
   type: Array<Position>,
 })
+
 const props = defineProps({
   step: {
     type: Number,
@@ -67,22 +65,40 @@ const props = defineProps({
     default: new Date('1990-10-20T00:00:00'),
   },
 })
-
-// data
+const millInHour = 60 * 60 * 1000
+const millInMin = 60 * 1000
+const minInHour = 60
 const calendar = ref<HTMLElement | null>(null)
 const currentDraggingBox = ref({} as IPosition)
-const resizingBox = ref<{ box: IPosition; direction: 'left' | 'right' } | null>(null)
+const resizingBox = ref<{ box: IPosition; direction: EDirection } | null>(
+  null
+)
 const dragOffset = ref(0)
+const stepWidth = ref(0)
+const stepPerHour = ref(0)
+const minToPixel = ref(0)
 
-const totalHours = Math.abs(props.to.getTime() - props.from.getTime()) / 36e5
+const totalHours = ref(
+  Math.abs(props.to.getTime() - props.from.getTime()) / millInHour
+)
 
-// Generate the hours array based on the total duration
-const hours = Array.from({ length: totalHours }, (_, i) => {
-  const date = new Date(props.from.getTime() + i * 60 * 60 * 1000)
+const hours = Array.from({ length: totalHours.value }, (_, i) => {
+  const date = new Date(props.from.getTime() + i * millInHour)
   return `${String(date.getHours()).padStart(2, '0')}:00`
 })
 
-// methods
+function calculatePosition(fromEvent: Date) {
+  if (!calendar.value) return 0
+  const fromMinutes = (fromEvent.getTime() - props.from.getTime()) / millInMin
+  return fromMinutes * minToPixel.value
+}
+
+function calculateDuration(from: Date, to: Date): number {
+  if (!calendar.value) return 0
+  const durationMinutes = (to.getTime() - from.getTime()) / millInMin
+  return durationMinutes * minToPixel.value
+}
+
 function dragStart(event: DragEvent, box: IPosition) {
   const target = event.target as HTMLElement
   const boxRect = target.getBoundingClientRect()
@@ -94,7 +110,7 @@ function dragEnd() {
   currentDraggingBox.value = {} as IPosition
 }
 
-function resizeStart(box: IPosition, direction: 'left' | 'right') {
+function resizeStart(box: IPosition, direction: EDirection) {
   resizingBox.value = { box, direction }
   document.addEventListener('mousemove', resizing)
   document.addEventListener('mouseup', resizeEnd)
@@ -103,23 +119,24 @@ function resizeStart(box: IPosition, direction: 'left' | 'right') {
 function dragOver(event: DragEvent) {
   event.preventDefault()
   if (currentDraggingBox.value && calendar.value) {
-    const parent = calendar.value
-    const offsetX = event.clientX - parent.getBoundingClientRect().left - dragOffset.value
-    const stepWidth = parent.offsetWidth / ((24 * 60) / props.step)
-    const roundedOffsetX = Math.round(offsetX / stepWidth) * stepWidth
+    const offsetX =
+      event.clientX -
+      calendar.value.getBoundingClientRect().left -
+      dragOffset.value
 
-    const totalWidth = parent.offsetWidth
-    const blockPosition =
-      totalWidth - (roundedOffsetX + currentDraggingBox.value.duration) >= 0
-        ? roundedOffsetX
-        : totalWidth - currentDraggingBox.value.duration
+    const roundedOffsetX =
+      Math.round(offsetX / stepWidth.value) * stepWidth.value
 
-    // Find the nearest hour
-    const nearestHourIndex = Math.floor(blockPosition / stepWidth)
-    const nearestHourPosition = nearestHourIndex * stepWidth
+    const newFrom = new Date(
+      props.from.getTime() + (roundedOffsetX / stepWidth.value) * props.step * millInMin
+    )
+    const duration =
+      currentDraggingBox.value.to.getTime() -
+      currentDraggingBox.value.from.getTime()
+    const newTo = new Date(newFrom.getTime() + duration)
 
-    // Update box position
-    currentDraggingBox.value.position = nearestHourPosition
+    currentDraggingBox.value.from = newFrom
+    currentDraggingBox.value.to = newTo
   }
 }
 
@@ -128,25 +145,23 @@ function resizing(event: MouseEvent) {
     const parent = calendar.value
     const { box, direction } = resizingBox.value
     const offsetX = event.clientX - parent.getBoundingClientRect().left
-    const stepWidth = (parent.offsetWidth / (24 * 60)) * props.step
-    const roundedOffsetX = Math.round(offsetX / stepWidth) * stepWidth
+    const roundedOffsetX = Math.round(offsetX / stepWidth.value) * stepWidth.value
 
-    // Find the nearest hour
-    const nearestHourIndex = Math.floor(roundedOffsetX / stepWidth)
-    const nearestHourPosition = nearestHourIndex * stepWidth
-
-    if (direction === 'left') {
-      const newWidth = box.position + box.duration - nearestHourPosition
-      if (newWidth > 0) {
-        box.duration = newWidth
-        box.position = nearestHourPosition
+    if (direction ===EDirection.Left) {
+      const newFrom = new Date(
+        props.from.getTime() + (roundedOffsetX / stepWidth.value) * props.step * millInMin
+      )
+      if (newFrom < box.to) {
+        box.from = newFrom
       }
       return
     }
-    if (direction === 'right') {
-      const newWidth = nearestHourPosition - box.position
-      if (newWidth > 0) {
-        box.duration = newWidth
+    if (direction ===EDirection.Right) {
+      const newTo = new Date(
+        props.from.getTime() + (roundedOffsetX / stepWidth.value) * props.step * millInMin
+      )
+      if (newTo > box.from) {
+        box.to = newTo
       }
     }
   }
@@ -158,7 +173,6 @@ function resizeEnd() {
   document.removeEventListener('mouseup', resizeEnd)
 }
 
-// hooks
 onMounted(() => {
   document.addEventListener('mouseup', resizeEnd)
 })
@@ -166,8 +180,20 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('mouseup', resizeEnd)
 })
+watch(
+  () => [props.step, props.from, props.to, calendar.value],
+  () => {
+    if (!calendar.value) return
+    stepPerHour.value = 60 / props.step
+    totalHours.value =
+      Math.abs(props.to.getTime() - props.from.getTime()) / millInHour
+    stepWidth.value =
+      (calendar.value.offsetWidth * props.step) / (totalHours.value * minInHour)
+    minToPixel.value =
+      calendar.value.offsetWidth / (minInHour * totalHours.value)
+  }
+)
 </script>
-
 
 <style scoped>
 .calendar-container {
@@ -226,7 +252,7 @@ onUnmounted(() => {
 }
 
 .circle-left,
-.circle-rigth {
+.circle-right {
   position: absolute;
   height: 0.6rem;
   width: 0.6rem;
@@ -242,7 +268,7 @@ onUnmounted(() => {
   left: -0.3rem;
 }
 
-.circle-rigth {
+.circle-right {
   right: -0.3rem;
 }
 </style>
