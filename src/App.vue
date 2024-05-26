@@ -18,6 +18,9 @@
         :to="new Date('2024-05-24T16:00:00')"
         :step="stepSelected"
       >
+        <template #header="{ date }">
+          {{ date.hour }}
+        </template>
         <template #default="{ data }">
           <div>{{ data.id }}</div>
         </template>
@@ -44,7 +47,7 @@ const events = ref([
     to: new Date('2024-05-24T14:00:00'),
   },
 ] as IPosition[])
-let stepSelected = ref(0)
+let stepSelected = ref(5)
 const timeOptions = [
   { value: 5, text: '5 min' },
   { value: 15, text: '15 min' },

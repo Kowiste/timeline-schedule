@@ -16,6 +16,11 @@ export class Position implements IPosition {
     this.to = data.to
   }
 }
+export interface IDate {
+  hour: string
+  value: Date
+}
+
 
 export enum EDirection {
   Left = 1,

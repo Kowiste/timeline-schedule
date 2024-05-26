@@ -2,8 +2,9 @@
   <div>
     <div class="calendar-container">
       <div class="header">
-        <div v-for="(hour, index) in hours" :key="index" class="header-hour">
-          {{ hour }}
+        <div v-for="(date, index) in hours" :key="index" class="header-hour">
+          <slot name="header" :date="date"></slot>
+         
         </div>
       </div>
       <div ref="calendar" class="day-calendar" @dragover="dragOver">
@@ -34,7 +35,7 @@
             class="circle-right"
             @click="resizeStart(box, EDirection.Right)"
           ></div>
-          <slot :data="box">{{ box.id }}</slot>
+          <slot :data="box"></slot>
         </div>
       </div>
     </div>
@@ -43,7 +44,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { EDirection, type IPosition, type Position } from '@/components/model'
+import {
+  EDirection,
+  type IPosition,
+  type Position,
+  type IDate,
+} from '@/components/model'
 
 const model = defineModel({
   default: [],
@@ -70,9 +76,7 @@ const millInMin = 60 * 1000
 const minInHour = 60
 const calendar = ref<HTMLElement | null>(null)
 const currentDraggingBox = ref({} as IPosition)
-const resizingBox = ref<{ box: IPosition; direction: EDirection } | null>(
-  null
-)
+const resizingBox = ref<{ box: IPosition; direction: EDirection } | null>(null)
 const dragOffset = ref(0)
 const stepWidth = ref(0)
 const stepPerHour = ref(0)
@@ -84,7 +88,10 @@ const totalHours = ref(
 
 const hours = Array.from({ length: totalHours.value }, (_, i) => {
   const date = new Date(props.from.getTime() + i * millInHour)
-  return `${String(date.getHours()).padStart(2, '0')}:00`
+  return {
+    hour: `${String(date.getHours()).padStart(2, '0')}:00`,
+    value: date,
+  } as IDate
 })
 
 function calculatePosition(fromEvent: Date) {
@@ -128,7 +135,8 @@ function dragOver(event: DragEvent) {
       Math.round(offsetX / stepWidth.value) * stepWidth.value
 
     const newFrom = new Date(
-      props.from.getTime() + (roundedOffsetX / stepWidth.value) * props.step * millInMin
+      props.from.getTime() +
+        (roundedOffsetX / stepWidth.value) * props.step * millInMin
     )
     const duration =
       currentDraggingBox.value.to.getTime() -
@@ -145,20 +153,23 @@ function resizing(event: MouseEvent) {
     const parent = calendar.value
     const { box, direction } = resizingBox.value
     const offsetX = event.clientX - parent.getBoundingClientRect().left
-    const roundedOffsetX = Math.round(offsetX / stepWidth.value) * stepWidth.value
+    const roundedOffsetX =
+      Math.round(offsetX / stepWidth.value) * stepWidth.value
 
-    if (direction ===EDirection.Left) {
+    if (direction === EDirection.Left) {
       const newFrom = new Date(
-        props.from.getTime() + (roundedOffsetX / stepWidth.value) * props.step * millInMin
+        props.from.getTime() +
+          (roundedOffsetX / stepWidth.value) * props.step * millInMin
       )
       if (newFrom < box.to) {
         box.from = newFrom
       }
       return
     }
-    if (direction ===EDirection.Right) {
+    if (direction === EDirection.Right) {
       const newTo = new Date(
-        props.from.getTime() + (roundedOffsetX / stepWidth.value) * props.step * millInMin
+        props.from.getTime() +
+          (roundedOffsetX / stepWidth.value) * props.step * millInMin
       )
       if (newTo > box.from) {
         box.to = newTo
