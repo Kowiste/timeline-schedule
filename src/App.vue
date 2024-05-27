@@ -1,16 +1,19 @@
 <template>
   <div>
-    <h1>HEY</h1>
-    <select v-model="stepSelected">
-      <option
-        v-for="option in timeOptions"
-        :key="option.value"
-        :value="option.value"
-      >
-        {{ option.text }}
-      </option>
-    </select>
-    {{ stepSelected }}
+    <div class="control">
+      <div>Select an interval</div>
+      <select v-model="stepSelected">
+        <option
+          v-for="option in timeOptions"
+          :key="option.value"
+          :value="option.value"
+        >
+          {{ option.text }}
+        </option>
+      </select>
+    </div>
+
+    <hr style="margin-bottom: 2rem" />
     <div class="row">
       <TimeScheduler
         v-model="events"
@@ -26,7 +29,7 @@
         </template>
       </TimeScheduler>
     </div>
-    <div class="row" v-for="event in events">{{ event }}</div>
+    <div  v-for="event in events" style="margin-top: 1rem;">{{ event }}</div>
   </div>
 </template>
 <script setup lang="ts">
@@ -56,7 +59,13 @@ const timeOptions = [
 ]
 </script>
 <style scoped>
+.control {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
 .row {
-  width: 100%;
+  resize: vertical;
+  overflow:hidden; /* something other than visible */
 }
 </style>

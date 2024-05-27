@@ -1,49 +1,46 @@
 <template>
-  <div>
-    <div class="calendar-container">
-      <div class="header">
-        <div v-for="(date, index) in hours" :key="index" class="header-hour">
-          <slot name="header" :date="date"></slot>
-         
-        </div>
+  <div class="calendar-container">
+    <div class="header">
+      <div v-for="(date, index) in hours" :key="index" class="header-hour">
+        <slot name="header" :date="date"></slot>
       </div>
-      <div ref="calendar" class="day-calendar" @dragover="dragOver">
+    </div>
+    <div ref="calendar" class="day-calendar" @dragover="dragOver">
+      <div
+        v-for="(hour, index) in hours"
+        :key="index"
+        class="hour-line"
+        :style="{ left: `${index * (100 / hours.length)}%` }"
+      ></div>
+      <div
+        v-for="box in model"
+        :key="box.id"
+        class="event"
+        :style="{
+          backgroundColor: box.color,
+          left: `${calculatePosition(box.from)}px`,
+          width: `${calculateDuration(box.from, box.to)}px`,
+        }"
+        draggable="true"
+        @dragstart="dragStart($event, box)"
+        @dragend="dragEnd"
+      >
         <div
-          v-for="(hour, index) in hours"
-          :key="index"
-          class="hour-line"
-          :style="{ left: `${index * (100 / hours.length)}%` }"
+          class="circle-left"
+          @click="resizeStart(box, EDirection.Left)"
         ></div>
         <div
-          v-for="box in model"
-          :key="box.id"
-          class="event"
-          :style="{
-            backgroundColor: box.color,
-            left: `${calculatePosition(box.from)}px`,
-            width: `${calculateDuration(box.from, box.to)}px`,
-          }"
-          draggable="true"
-          @dragstart="dragStart($event, box)"
-          @dragend="dragEnd"
-        >
-          <div
-            class="circle-left"
-            @click="resizeStart(box, EDirection.Left)"
-          ></div>
-          <div
-            class="circle-right"
-            @click="resizeStart(box, EDirection.Right)"
-          ></div>
-          <slot :data="box"></slot>
-        </div>
+          class="circle-right"
+          @click="resizeStart(box, EDirection.Right)"
+        ></div>
+        <slot :data="box"></slot>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, onUpdated } from 'vue'
 import {
   EDirection,
   type IPosition,
@@ -126,17 +123,16 @@ function resizeStart(box: IPosition, direction: EDirection) {
 function dragOver(event: DragEvent) {
   event.preventDefault()
   if (currentDraggingBox.value && calendar.value) {
-    const offsetX =
+    const setX =
       event.clientX -
       calendar.value.getBoundingClientRect().left -
       dragOffset.value
 
-    const roundedOffsetX =
-      Math.round(offsetX / stepWidth.value) * stepWidth.value
+    const roundedsetX = Math.round(setX / stepWidth.value) * stepWidth.value
 
     const newFrom = new Date(
       props.from.getTime() +
-        (roundedOffsetX / stepWidth.value) * props.step * millInMin
+        (roundedsetX / stepWidth.value) * props.step * millInMin
     )
     const duration =
       currentDraggingBox.value.to.getTime() -
@@ -152,25 +148,19 @@ function resizing(event: MouseEvent) {
   if (resizingBox.value && calendar.value) {
     const parent = calendar.value
     const { box, direction } = resizingBox.value
-    const offsetX = event.clientX - parent.getBoundingClientRect().left
-    const roundedOffsetX =
-      Math.round(offsetX / stepWidth.value) * stepWidth.value
-
+    const setX = event.clientX - parent.getBoundingClientRect().left
+    const roundedsetX = Math.round(setX / stepWidth.value) * stepWidth.value
+    const roundMin = (roundedsetX / stepWidth.value) * props.step * millInMin
     if (direction === EDirection.Left) {
-      const newFrom = new Date(
-        props.from.getTime() +
-          (roundedOffsetX / stepWidth.value) * props.step * millInMin
-      )
+      const newFrom = new Date(props.from.getTime() + roundMin)
+
       if (newFrom < box.to) {
         box.from = newFrom
       }
       return
     }
     if (direction === EDirection.Right) {
-      const newTo = new Date(
-        props.from.getTime() +
-          (roundedOffsetX / stepWidth.value) * props.step * millInMin
-      )
+      const newTo = new Date(props.from.getTime() + roundMin)
       if (newTo > box.from) {
         box.to = newTo
       }
@@ -183,19 +173,30 @@ function resizeEnd() {
   document.removeEventListener('mousemove', resizing)
   document.removeEventListener('mouseup', resizeEnd)
 }
-
+function updateDimensions() {
+  if (!calendar.value) return
+  stepPerHour.value = minInHour / props.step
+  totalHours.value =
+    Math.abs(props.to.getTime() - props.from.getTime()) / millInHour
+  stepWidth.value =
+    (calendar.value.offsetWidth * props.step) / (totalHours.value * minInHour)
+  minToPixel.value = calendar.value.offsetWidth / (minInHour * totalHours.value)
+}
 onMounted(() => {
   document.addEventListener('mouseup', resizeEnd)
+  window.addEventListener('resize', updateDimensions)
 })
 
 onUnmounted(() => {
   document.removeEventListener('mouseup', resizeEnd)
+  window.removeEventListener('resize', updateDimensions)
 })
+
 watch(
   () => [props.step, props.from, props.to, calendar.value],
   () => {
     if (!calendar.value) return
-    stepPerHour.value = 60 / props.step
+    stepPerHour.value = minInHour / props.step
     totalHours.value =
       Math.abs(props.to.getTime() - props.from.getTime()) / millInHour
     stepWidth.value =
@@ -208,14 +209,13 @@ watch(
 
 <style scoped>
 .calendar-container {
-  width: 600px;
-  height: 150px;
+  width: 100%;
+  height: 100%;
 }
 
 .header {
   display: flex;
   width: 100%;
-  height: 2rem;
   border: 1px solid #ccc;
   box-sizing: border-box;
   border-top-left-radius: 0.2rem;
@@ -234,7 +234,7 @@ watch(
 .day-calendar {
   position: relative;
   width: 100%;
-  height: 100px;
+  height: 100%;
   border: 1px solid #ccc;
   overflow-x: hidden;
   box-sizing: border-box;
