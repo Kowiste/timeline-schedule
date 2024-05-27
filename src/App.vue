@@ -11,6 +11,10 @@
           {{ option.text }}
         </option>
       </select>
+      <label>Resize</label>
+      <input type="checkbox" v-model="allowResize" />
+      <label>Move</label>
+      <input type="checkbox" v-model="allowMove" />
     </div>
 
     <hr style="margin-bottom: 2rem" />
@@ -20,6 +24,8 @@
         :from="new Date('2024-05-24T06:00:00')"
         :to="new Date('2024-05-24T16:00:00')"
         :step="stepSelected"
+        :resize="allowResize"
+        :move="allowMove"
       >
         <template #header="{ date }">
           {{ date.hour }}
@@ -29,7 +35,7 @@
         </template>
       </TimeScheduler>
     </div>
-    <div  v-for="event in events" style="margin-top: 1rem;">{{ event }}</div>
+    <div v-for="event in events" style="margin-top: 1rem">{{ event }}</div>
   </div>
 </template>
 <script setup lang="ts">
@@ -51,6 +57,8 @@ const events = ref([
   },
 ] as IPosition[])
 let stepSelected = ref(5)
+let allowResize = ref(true)
+let allowMove = ref(true)
 const timeOptions = [
   { value: 5, text: '5 min' },
   { value: 15, text: '15 min' },
@@ -66,6 +74,6 @@ const timeOptions = [
 }
 .row {
   resize: vertical;
-  overflow:hidden; /* something other than visible */
+  overflow: hidden; /* something other than visible */
 }
 </style>

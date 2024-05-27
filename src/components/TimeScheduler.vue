@@ -26,10 +26,12 @@
         @dragend="dragEnd"
       >
         <div
+          v-if="resize"
           class="circle-left"
           @click="resizeStart(box, EDirection.Left)"
         ></div>
         <div
+          v-if="resize"
           class="circle-right"
           @click="resizeStart(box, EDirection.Right)"
         ></div>
@@ -66,6 +68,14 @@ const props = defineProps({
   to: {
     type: Date,
     default: new Date('1990-10-20T00:00:00'),
+  },
+  resize: {
+    type: Boolean,
+    default: true,
+  },
+  move: {
+    type: Boolean,
+    default: true,
   },
 })
 const millInHour = 60 * 60 * 1000
@@ -104,6 +114,7 @@ function calculateDuration(from: Date, to: Date): number {
 }
 
 function dragStart(event: DragEvent, box: IPosition) {
+  if (!props.move) return
   const target = event.target as HTMLElement
   const boxRect = target.getBoundingClientRect()
   dragOffset.value = event.clientX - boxRect.left
