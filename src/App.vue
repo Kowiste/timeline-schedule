@@ -35,13 +35,18 @@
         </template>
       </TimeScheduler>
     </div>
-    <div v-for="event in events" style="margin-top: 1rem">{{ event }}</div>
+    <div v-for="event in events" style="margin-top: 1rem">
+      id:{{ event.id }} color:{{ event.color }} from:{{
+        event.from.toLocaleString()
+      }}
+      to:{{ event.to.toLocaleString() }}
+    </div>
   </div>
 </template>
 <script setup lang="ts">
 import TimeScheduler from '@/components/TimeScheduler.vue'
 import { ref } from 'vue'
-import type { IPosition } from './components/model'
+import type { IPosition, Position } from './components/model'
 const events = ref([
   {
     id: 1,
@@ -55,7 +60,7 @@ const events = ref([
     from: new Date('2024-05-24T12:00:00'),
     to: new Date('2024-05-24T14:00:00'),
   },
-] as IPosition[])
+] as Position[])
 let stepSelected = ref(5)
 let allowResize = ref(true)
 let allowMove = ref(true)

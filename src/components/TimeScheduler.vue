@@ -49,6 +49,7 @@ import {
   type Position,
   type IDate,
 } from '@/components/model'
+import { millInHour, millInMin, minInHour } from './const'
 
 const model = defineModel({
   default: [],
@@ -78,9 +79,7 @@ const props = defineProps({
     default: true,
   },
 })
-const millInHour = 60 * 60 * 1000
-const millInMin = 60 * 1000
-const minInHour = 60
+
 const calendar = ref<HTMLElement | null>(null)
 const currentDraggingBox = ref({} as IPosition)
 const resizingBox = ref<{ box: IPosition; direction: EDirection } | null>(null)
@@ -119,6 +118,11 @@ function dragStart(event: DragEvent, box: IPosition) {
   const boxRect = target.getBoundingClientRect()
   dragOffset.value = event.clientX - boxRect.left
   currentDraggingBox.value = box
+
+  //remove drag image
+  const empty = new Image()
+  empty.src = ''
+  event.dataTransfer?.setDragImage(empty, 0, 0)
 }
 
 function dragEnd() {
@@ -266,8 +270,7 @@ watch(
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  min-height: 90%;
-  max-height: 100%;
+  height: 100%;
   cursor: move;
   border-radius: 0.2rem;
   border: 1px solid black;
