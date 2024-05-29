@@ -251,7 +251,7 @@ watch(
   width: 100%;
   height: 100%;
   border: 1px solid #ccc;
-  overflow-x: hidden;
+  overflow: hidden;
   box-sizing: border-box;
   border-bottom-left-radius: 0.2rem;
   border-bottom-right-radius: 0.2rem;
@@ -274,6 +274,7 @@ watch(
   cursor: move;
   border-radius: 0.2rem;
   border: 1px solid black;
+  box-sizing: border-box;
 }
 
 .circle-left,
