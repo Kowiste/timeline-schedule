@@ -42,13 +42,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, onUpdated } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import {
   EDirection,
   type IPosition,
   type Position,
   type IDate,
-} from '@/components/model'
+} from './model'
 import { millInHour, millInMin, minInHour } from './const'
 
 const model = defineModel({

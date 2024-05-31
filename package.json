@@ -28,7 +28,7 @@
     "library"
   ],
   "author": "Kowiste Pablo",
-  "peerDependencies": {
+  "dependencies": {
     "vue": "^3.4.21"
   },
   "devDependencies": {
