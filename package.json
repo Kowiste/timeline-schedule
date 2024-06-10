@@ -1,14 +1,15 @@
 {
   "name": "time-scheduler-vue",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "description": "A time scheduler component",
   "main": "./dist/time-scheduler-vue.umd.js",
   "module": "./dist/time-scheduler-vue.es.js",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/time-scheduler-vue.es.js",
-      "require": "./dist/time-scheduler-vue.umd.js"
+      "import": "./time-scheduler-vue.es.js",
+      "require": "./time-scheduler-vue.umd.js",
+      "types": "./types/index.d.ts"
     },
     "./dist/style.css": "./dist/style.css"
   },

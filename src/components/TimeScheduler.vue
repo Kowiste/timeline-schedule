@@ -1,16 +1,16 @@
 <template>
   <div class="calendar-container">
     <div class="header">
-      <div v-for="(date, index) in hours" :key="index" class="header-hour">
+      <div v-for="(date, index) in filteredHours" :key="index" class="header-hour">
         <slot name="header" :date="date"></slot>
       </div>
     </div>
     <div ref="calendar" class="day-calendar" @dragover="dragOver">
       <div
-        v-for="(hour, index) in hours"
+        v-for="(hour, index) in filteredHours"
         :key="index"
         class="hour-line"
-        :style="{ left: `${index * (100 / hours.length)}%` }"
+        :style="{ left: `${index * (100 / filteredHours.length)}%` }"
       ></div>
       <div
         v-for="box in model"
@@ -35,7 +35,7 @@
           class="circle-right"
           @click="resizeStart(box, EDirection.Right)"
         ></div>
-        <slot :data="box"></slot>
+        <slot :event="box"></slot>
       </div>
     </div>
   </div>
@@ -43,12 +43,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import {
-  EDirection,
-  type IPosition,
-  type Position,
-  type IDate,
-} from './model'
+import { EDirection, type IPosition, type Position, type IDate } from './model'
 import { millInHour, millInMin, minInHour } from './const'
 
 const model = defineModel({
@@ -78,6 +73,14 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  change: {
+    type: Function,
+    default: function () {},
+  },
+  stepHour: {
+    type: Number,
+    default: 1,
+  },
 })
 
 const calendar = ref<HTMLElement | null>(null)
@@ -99,7 +102,7 @@ const hours = Array.from({ length: totalHours.value }, (_, i) => {
     value: date,
   } as IDate
 })
-
+const filteredHours = hours.filter((_, index) => index % props.stepHour === 0)
 function calculatePosition(fromEvent: Date) {
   if (!calendar.value) return 0
   const fromMinutes = (fromEvent.getTime() - props.from.getTime()) / millInMin
@@ -126,6 +129,7 @@ function dragStart(event: DragEvent, box: IPosition) {
 }
 
 function dragEnd() {
+  if (currentDraggingBox.value) props.change()
   currentDraggingBox.value = {} as IPosition
 }
 
@@ -137,6 +141,7 @@ function resizeStart(box: IPosition, direction: EDirection) {
 
 function dragOver(event: DragEvent) {
   event.preventDefault()
+  if (!props.move) return
   if (currentDraggingBox.value && calendar.value) {
     const setX =
       event.clientX -
@@ -184,6 +189,7 @@ function resizing(event: MouseEvent) {
 }
 
 function resizeEnd() {
+  if (resizingBox.value) props.change()
   resizingBox.value = null
   document.removeEventListener('mousemove', resizing)
   document.removeEventListener('mouseup', resizeEnd)
