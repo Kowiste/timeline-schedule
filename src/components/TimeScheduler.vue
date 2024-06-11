@@ -1,48 +1,56 @@
 <template>
   <div class="calendar-container">
-    <div class="header">
-      <div v-for="(date, index) in filteredHours" :key="index" class="header-hour">
-        <slot name="header" :date="date"></slot>
-      </div>
-    </div>
-    <div ref="calendar" class="day-calendar" @dragover="dragOver">
-      <div
-        v-for="(hour, index) in filteredHours"
-        :key="index"
-        class="hour-line"
-        :style="{ left: `${index * (100 / filteredHours.length)}%` }"
-      ></div>
-      <div
-        v-for="box in model"
-        :key="box.id"
-        class="event"
-        :style="{
-          backgroundColor: box.color,
-          left: `${calculatePosition(box.from)}px`,
-          width: `${calculateDuration(box.from, box.to)}px`,
-        }"
-        draggable="true"
-        @dragstart="dragStart($event, box)"
-        @dragend="dragEnd"
-      >
+    <button v-if="showButton" class="side-button left-button" @click="onLeftClick"></button>
+    <div class="calendar-content">
+      <div class="header">
         <div
-          v-if="resize"
-          class="circle-left"
-          @click="resizeStart(box, EDirection.Left)"
+          v-for="(date, index) in filteredHours"
+          :key="index"
+          class="header-hour"
+        >
+          <slot name="header" :date="date"></slot>
+        </div>
+      </div>
+      <div ref="calendar" class="day-calendar" @dragover="dragOver">
+        <div
+          v-for="(hour, index) in filteredHours"
+          :key="index"
+          class="hour-line"
+          :style="{ left: `${index * (100 / filteredHours.length)}%` }"
         ></div>
         <div
-          v-if="resize"
-          class="circle-right"
-          @click="resizeStart(box, EDirection.Right)"
-        ></div>
-        <slot :event="box"></slot>
+          v-for="box in model"
+          :key="box.id"
+          class="event"
+          :style="{
+            backgroundColor: box.color,
+            left: `${calculatePosition(box.from)}px`,
+            width: `${calculateDuration(box.from, box.to)}px`,
+          }"
+          draggable="true"
+          @dragstart="dragStart($event, box)"
+          @dragend="dragEnd"
+        >
+          <div
+            v-if="resize"
+            class="circle-left"
+            @click="resizeStart(box, EDirection.Left)"
+          ></div>
+          <div
+            v-if="resize"
+            class="circle-right"
+            @click="resizeStart(box, EDirection.Right)"
+          ></div>
+          <slot :event="box"></slot>
+        </div>
       </div>
     </div>
+    <button v-if="showButton" class="side-button right-button" @click="onRightClick"></button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, PropType } from 'vue'
 import { EDirection, type IPosition, type Position, type IDate } from './model'
 import { millInHour, millInMin, minInHour } from './const'
 
@@ -81,6 +89,18 @@ const props = defineProps({
     type: Number,
     default: 1,
   },
+  showButton: {
+    type: Boolean,
+    default: false,
+  },
+  onLeftClick: {
+    type: Function as PropType<(event: MouseEvent) => void>,
+    default: function (payload: MouseEvent) {},
+  },
+  onRightClick: {
+    type: Function as PropType<(event: MouseEvent) => void>,
+    default: function (payload: MouseEvent) {},
+  },
 })
 
 const calendar = ref<HTMLElement | null>(null)
@@ -104,13 +124,13 @@ const hours = Array.from({ length: totalHours.value }, (_, i) => {
 })
 const filteredHours = hours.filter((_, index) => index % props.stepHour === 0)
 function calculatePosition(fromEvent: Date) {
-  if (!calendar.value) return 0
+  if (!calendar.value || !fromEvent) return 0
   const fromMinutes = (fromEvent.getTime() - props.from.getTime()) / millInMin
   return fromMinutes * minToPixel.value
 }
 
 function calculateDuration(from: Date, to: Date): number {
-  if (!calendar.value) return 0
+  if (!calendar.value || !from || !to) return 0
   const durationMinutes = (to.getTime() - from.getTime()) / millInMin
   return durationMinutes * minToPixel.value
 }
@@ -203,6 +223,7 @@ function updateDimensions() {
     (calendar.value.offsetWidth * props.step) / (totalHours.value * minInHour)
   minToPixel.value = calendar.value.offsetWidth / (minInHour * totalHours.value)
 }
+
 onMounted(() => {
   document.addEventListener('mouseup', resizeEnd)
   window.addEventListener('resize', updateDimensions)
@@ -232,6 +253,31 @@ watch(
 .calendar-container {
   width: 100%;
   height: 100%;
+}
+
+.calendar-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+
+.side-button {
+  width: 20px;
+  height: 100%;
+  background-color: #f0f0f0;
+  border: none;
+  cursor: pointer;
+  position: absolute;
+  top: 0;
+}
+
+.left-button {
+  left: 0;
+}
+
+.right-button {
+  right: 0;
 }
 
 .header {
